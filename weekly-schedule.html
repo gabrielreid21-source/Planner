@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="My Schedule">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f1117">
+<title>Weekly Schedule</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='20' width='100' height='100' fill='%230f1117'/><text x='50' y='68' text-anchor='middle' font-size='50'>📋</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%231a1c27'/><text x='90' y='120' text-anchor='middle' font-size='90'>📋</text></svg>">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html { height: 100%; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0f1117;
+    color: #e0e0e6;
+    min-height: 100%;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 6px;
+    padding-top: 8px;
+  }
+
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #6ee7b7, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 4px;
+  }
+
+  .header p {
+    color: #6b7094;
+    font-size: 12px;
+  }
+
+  .tz-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 10px 0 16px;
+    flex-wrap: wrap;
+  }
+
+  .tz-pill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 16px;
+    background: #1a1c27;
+    border: 1px solid #2a2d3a;
+    color: #8b8fa3;
+  }
+
+  .tz-pill span { color: #6ee7b7; }
+
+  .current-date {
+    text-align: center;
+    font-size: 12px;
+    color: #4a5070;
+    margin-bottom: 14px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 3px;
+    justify-content: center;
+    margin-bottom: 18px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 0;
+  }
+
+  .tab {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #2a2d3a;
+    background: #1a1c27;
+    color: #6b7094;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    min-width: 44px;
+    text-align: center;
+  }
+
+  .tab:active { transform: scale(0.95); }
+  .tab.active { background: #3b82f6; border-color: #3b82f6; color: #fff; box-shadow: 0 2px 12px #3b82f644; }
+  .tab.today:not(.active) { border-color: #6ee7b7; color: #6ee7b7; }
+  .tab.off-day.active { background: #f59e0b; border-color: #f59e0b; }
+
+  .day-view {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+
+  .day-title {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .day-subtitle {
+    font-size: 11px;
+    color: #6b7094;
+  }
+
+  .time-block {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 5px;
+  }
+
+  .time-col {
+    width: 52px;
+    text-align: right;
+    font-size: 12px;
+    color: #6b7094;
+    padding-top: 13px;
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+
+  .we-time {
+    display: block;
+    font-size: 9px;
+    color: #3d4260;
+    margin-top: 1px;
+    font-weight: 500;
+  }
+
+  .block-content {
+    flex: 1;
+    border-radius: 12px;
+    padding: 13px 14px;
+    position: relative;
+    border-left: 3px solid;
+    transition: transform 0.12s;
+    cursor: pointer;
+  }
+
+  .block-content:active {
+    transform: scale(0.98);
+  }
+
+  .block-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .block-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+
+  .block-desc {
+    font-size: 12px;
+    opacity: 0.7;
+    line-height: 1.5;
+  }
+
+  .block-duration {
+    font-size: 10px;
+    opacity: 0.45;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-left: 8px;
+  }
+
+  .check-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 2px solid #3a3d50;
+    flex-shrink: 0;
+    margin-left: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .check-icon.checked {
+    background: #6ee7b7;
+    border-color: #6ee7b7;
+  }
+
+  .check-icon.checked::after {
+    content: '✓';
+    color: #0f1117;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .block-content.done {
+    opacity: 0.45;
+  }
+
+  .block-content.done .block-title {
+    text-decoration: line-through;
+  }
+
+  .cat-planning { background: #1e293b; border-color: #6ee7b7; }
+  .cat-planning .block-title { color: #6ee7b7; }
+
+  .cat-income { background: #1a1e2e; border-color: #818cf8; }
+  .cat-income .block-title { color: #818cf8; }
+
+  .cat-jobs { background: #1e1a2e; border-color: #c084fc; }
+  .cat-jobs .block-title { color: #c084fc; }
+
+  .cat-writing { background: #2a1a1e; border-color: #fb7185; }
+  .cat-writing .block-title { color: #fb7185; }
+
+  .cat-break { background: #1a2420; border-color: #34d399; }
+  .cat-break .block-title { color: #34d399; }
+
+  .cat-life { background: #2a2410; border-color: #fbbf24; }
+  .cat-life .block-title { color: #fbbf24; }
+
+  .cat-offday { background: #1c1f12; border-color: #f59e0b; }
+  .cat-offday .block-title { color: #f59e0b; }
+
+  .progress-bar {
+    max-width: 720px;
+    margin: 0 auto 18px;
+    background: #1a1c27;
+    border-radius: 10px;
+    padding: 12px 14px;
+    border: 1px solid #2a2d3a;
+  }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .progress-label span:first-child { color: #6ee7b7; font-weight: 600; }
+  .progress-label span:last-child { color: #6b7094; }
+
+  .progress-track {
+    height: 6px;
+    background: #2a2d3a;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6ee7b7, #3b82f6);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .reset-btn {
+    display: block;
+    margin: 16px auto 0;
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1px solid #2a2d3a;
+    background: #1a1c27;
+    color: #6b7094;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .reset-btn:active { background: #2a2d3a; }
+
+  /* Overview */
+  .weekly-overview { max-width: 720px; margin: 0 auto; }
+
+  .overview-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  @media (min-width: 600px) {
+    .overview-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .overview-card {
+    background: #1a1c27;
+    border: 1px solid #2a2d3a;
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .overview-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .overview-stat {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 4px 0;
+  }
+
+  .stat-label { color: #6b7094; }
+  .stat-value { font-weight: 600; }
+
+  .install-hint {
+    max-width: 720px;
+    margin: 20px auto 0;
+    background: #1a1c27;
+    border: 1px solid #2a2d3a;
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    font-size: 12px;
+    color: #6b7094;
+    line-height: 1.6;
+  }
+
+  .install-hint strong { color: #6ee7b7; }
+
+  .install-hint .dismiss {
+    display: inline-block;
+    margin-top: 8px;
+    color: #4a5070;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 11px;
+  }
+
+  .tips-section {
+    max-width: 720px;
+    margin: 20px auto 0;
+    background: #1a1c27;
+    border: 1px solid #2a2d3a;
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .tips-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6ee7b7;
+  }
+
+  .tips-toggle .arrow {
+    transition: transform 0.2s;
+    font-size: 12px;
+    color: #6b7094;
+  }
+
+  .tips-toggle .arrow.open { transform: rotate(180deg); }
+
+  .tips-body {
+    display: none;
+    margin-top: 12px;
+  }
+
+  .tips-body.open { display: block; }
+
+  .tip {
+    font-size: 12px;
+    color: #8b8fa3;
+    padding: 5px 0 5px 14px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .tip::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: #3b82f6;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Weekly Schedule</h1>
+  <p>Tbilisi · Self-directed · Wednesday off</p>
+</div>
+
+<div class="tz-row">
+  <div class="tz-pill">You: <span>GET UTC+4</span></div>
+  <div class="tz-pill">WE hours: <span>11:00–20:00</span> your time</div>
+</div>
+
+<div class="current-date" id="currentDate"></div>
+<div class="tabs" id="tabs"></div>
+<div id="content"></div>
+
+<script>
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+function toWE(t) {
+  if (!t || t === '—') return '';
+  const [h,m] = t.split(':').map(Number);
+  const w = h - 2;
+  return w >= 0 ? String(w).padStart(2,'0')+':'+String(m).padStart(2,'0')+' CEST' : '';
+}
+
+function todayKey() {
+  return DAYS[new Date().getDay()];
+}
+
+function dateStr() {
+  return new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+
+const workday = [
+  { id:'plan-am', time:'10:00', dur:'30m', cat:'planning', title:'Morning Planning', desc:'Set daily goals, review priorities, scan job boards.' },
+  { id:'tm-am', time:'10:30', dur:'2h', cat:'income', title:'TranscribeMe — Deep Focus', desc:'Peak energy → direct income. Batch tasks, no distractions.' },
+  { id:'exercise', time:'12:30', dur:'30m', cat:'break', title:'Break — Light Exercise', desc:'Walk, stretch, bodyweight circuit.' },
+  { id:'jobs', time:'13:00', dur:'1.5h', cat:'jobs', title:'Job Applications & Research', desc:'Apply to remote roles, tailor cover letters. Prime WE hours.' },
+  { id:'lunch', time:'14:30', dur:'1h', cat:'life', title:'Lunch + Chores', desc:'Cook, tidy kitchen, quick household task.' },
+  { id:'writing', time:'15:30', dur:'1.5h', cat:'writing', title:'Writing Samples & Portfolio', desc:'Draft/revise content writing samples.' },
+  { id:'tm-pm', time:'17:00', dur:'1.5h', cat:'income', title:'TranscribeMe — Afternoon', desc:'Second earning session, still within WE hours.' },
+  { id:'resume', time:'18:30', dur:'30m', cat:'jobs', title:'Resume & Professional Dev', desc:'Update resume, LinkedIn, follow-ups.' },
+  { id:'review', time:'19:00', dur:'30m', cat:'planning', title:'Day Review & Tomorrow Prep', desc:'Log accomplishments, set tomorrow\'s top 3.' },
+  { id:'evening', time:'19:30', dur:'—', cat:'break', title:'Evening — You\'re Off', desc:'Dinner, relax, personal time.' },
+];
+
+const wednesday = [
+  { id:'wed-plan', time:'10:30', dur:'30m', cat:'planning', title:'Relaxed Morning', desc:'Sleep in. Light planning, review the week.' },
+  { id:'wed-city', time:'11:00', dur:'—', cat:'offday', title:'City Errands', desc:'Appointments, admin, shopping, banking.' },
+  { id:'wed-rest', time:'—', dur:'—', cat:'break', title:'Recharge', desc:'Exercise, explore, socialize. Back Thursday refreshed.' },
+];
+
+const saturday = [
+  { id:'sat-plan', time:'10:30', dur:'30m', cat:'planning', title:'Morning Planning', desc:'Quick review, flexible day.' },
+  { id:'sat-tm', time:'11:00', dur:'2h', cat:'income', title:'TranscribeMe — Bonus', desc:'Extra earning, less weekend competition.' },
+  { id:'sat-ex', time:'13:00', dur:'30m', cat:'break', title:'Break — Exercise', desc:'Longer workout or outdoor walk.' },
+  { id:'sat-wr', time:'13:30', dur:'1.5h', cat:'writing', title:'Writing — Extended', desc:'Longer pieces, editing, polishing.' },
+  { id:'sat-life', time:'15:00', dur:'1h', cat:'life', title:'Lunch + Household', desc:'Meal prep, cooking, cleaning.' },
+  { id:'sat-jobs', time:'16:00', dur:'1h', cat:'jobs', title:'Job Search — Weekly Review', desc:'Review apps sent, update tracker.' },
+  { id:'sat-off', time:'17:00', dur:'—', cat:'break', title:'Afternoon Off', desc:'Explore Tbilisi, social, rest.' },
+];
+
+const sunday = [
+  { id:'sun-rev', time:'11:00', dur:'1h', cat:'planning', title:'Weekly Review & Planning', desc:'Set goals for the coming week.' },
+  { id:'sun-prep', time:'12:00', dur:'1h', cat:'life', title:'Meal Prep & Household', desc:'Prep meals, deep clean, laundry.' },
+  { id:'sun-rest', time:'13:00', dur:'—', cat:'break', title:'Full Rest', desc:'Recharge. No work screens.' },
+];
+
+const schedules = { Mon:workday, Tue:workday, Wed:wednesday, Thu:workday, Fri:workday, Sat:saturday, Sun:sunday };
+const subtitles = { Mon:'Start the week strong', Tue:'Maintain momentum', Wed:'City day + recharge', Thu:'Refreshed from break', Fri:'Finish the week\'s tasks', Sat:'Half day — earn & write', Sun:'Rest & plan' };
+
+let activeDay = todayKey();
+
+// Checklist persistence
+function checkKey(day) { return 'sched_' + day + '_' + new Date().toISOString().slice(0,10); }
+
+function getChecked(day) {
+  try { return JSON.parse(localStorage.getItem(checkKey(day))) || {}; } catch(e) { return {}; }
+}
+
+function setChecked(day, id, val) {
+  const c = getChecked(day);
+  c[id] = val;
+  localStorage.setItem(checkKey(day), JSON.stringify(c));
+}
+
+function resetChecked(day) {
+  localStorage.removeItem(checkKey(day));
+}
+
+// Render
+function renderTabs() {
+  const today = todayKey();
+  document.getElementById('tabs').innerHTML = LABELS.map(d => {
+    const isOff = d==='Wed'||d==='Sun';
+    const isCur = d === today;
+    return `<div class="tab ${d===activeDay?'active':''} ${isOff?'off-day':''} ${isCur&&d!==activeDay?'today':''}" onclick="selectDay('${d}')">${d}</div>`;
+  }).join('') + `<div class="tab ${activeDay==='overview'?'active':''}" onclick="selectDay('overview')">⊞</div>`;
+}
+
+function renderDay(day) {
+  const blocks = schedules[day];
+  const checked = getChecked(day);
+  const checkable = blocks.filter(b => b.cat !== 'break' && b.cat !== 'offday');
+  const doneCount = checkable.filter(b => checked[b.id]).length;
+  const total = checkable.length;
+  const pct = total ? Math.round((doneCount/total)*100) : 0;
+
+  const html = `
+    <div class="day-view">
+      <div class="progress-bar">
+        <div class="progress-label">
+          <span>Today's Progress</span>
+          <span>${doneCount}/${total} tasks · ${pct}%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:${pct}%"></div>
+        </div>
+      </div>
+      <div class="day-header">
+        <div class="day-title">${fullDay(day)}</div>
+        <div class="day-subtitle">${subtitles[day]}</div>
+      </div>
+      ${blocks.map(b => {
+        const isDone = checked[b.id];
+        const canCheck = b.cat !== 'break' && b.cat !== 'offday';
+        return `
+        <div class="time-block">
+          <div class="time-col">
+            ${b.time}
+            <span class="we-time">${toWE(b.time)}</span>
+          </div>
+          <div class="block-content cat-${b.cat} ${isDone?'done':''}" ${canCheck?`onclick="toggleCheck('${day}','${b.id}')"`:''}>
+            <div class="block-top">
+              <div>
+                <div class="block-title">${b.title}</div>
+                <div class="block-desc">${b.desc}</div>
+              </div>
+              <div style="display:flex;align-items:center">
+                <span class="block-duration">${b.dur}</span>
+                ${canCheck ? `<div class="check-icon ${isDone?'checked':''}"></div>` : ''}
+              </div>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+      <button class="reset-btn" onclick="resetDay('${day}')">Reset today's checkmarks</button>
+    </div>
+  `;
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderOverview() {
+  const html = `
+    <div class="weekly-overview">
+      <div class="overview-grid">
+        <div class="overview-card">
+          <h3 style="color:#818cf8">TranscribeMe</h3>
+          <div class="overview-stat"><span class="stat-label">4 workdays</span><span class="stat-value" style="color:#818cf8">14h</span></div>
+          <div class="overview-stat"><span class="stat-label">Saturday</span><span class="stat-value" style="color:#818cf8">2h</span></div>
+          <div class="overview-stat"><span class="stat-label">Total</span><span class="stat-value" style="color:#818cf8">~16h/wk</span></div>
+        </div>
+        <div class="overview-card">
+          <h3 style="color:#c084fc">Job Search</h3>
+          <div class="overview-stat"><span class="stat-label">Applications</span><span class="stat-value" style="color:#c084fc">6h</span></div>
+          <div class="overview-stat"><span class="stat-label">Resume/dev</span><span class="stat-value" style="color:#c084fc">2h</span></div>
+          <div class="overview-stat"><span class="stat-label">Total</span><span class="stat-value" style="color:#c084fc">~9h/wk</span></div>
+        </div>
+        <div class="overview-card">
+          <h3 style="color:#fb7185">Writing</h3>
+          <div class="overview-stat"><span class="stat-label">4 workdays</span><span class="stat-value" style="color:#fb7185">6h</span></div>
+          <div class="overview-stat"><span class="stat-label">Saturday</span><span class="stat-value" style="color:#fb7185">1.5h</span></div>
+          <div class="overview-stat"><span class="stat-label">Total</span><span class="stat-value" style="color:#fb7185">~7.5h/wk</span></div>
+        </div>
+        <div class="overview-card">
+          <h3 style="color:#6ee7b7">Planning</h3>
+          <div class="overview-stat"><span class="stat-label">Daily rituals</span><span class="stat-value" style="color:#6ee7b7">~5h</span></div>
+          <div class="overview-stat"><span class="stat-label">Sun review</span><span class="stat-value" style="color:#6ee7b7">1h</span></div>
+          <div class="overview-stat"><span class="stat-label">Total</span><span class="stat-value" style="color:#6ee7b7">~6h/wk</span></div>
+        </div>
+        <div class="overview-card">
+          <h3 style="color:#fbbf24">Life Admin</h3>
+          <div class="overview-stat"><span class="stat-label">Daily chores</span><span class="stat-value" style="color:#fbbf24">~7h</span></div>
+          <div class="overview-stat"><span class="stat-label">Wed city day</span><span class="stat-value" style="color:#fbbf24">Full</span></div>
+        </div>
+        <div class="overview-card">
+          <h3 style="color:#34d399">Rest & Exercise</h3>
+          <div class="overview-stat"><span class="stat-label">Exercise</span><span class="stat-value" style="color:#34d399">~2.5h</span></div>
+          <div class="overview-stat"><span class="stat-label">Free from</span><span class="stat-value" style="color:#34d399">19:30</span></div>
+          <div class="overview-stat"><span class="stat-label">Days off</span><span class="stat-value" style="color:#34d399">Wed + Sun</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('content').innerHTML = html;
+}
+
+function toggleCheck(day, id) {
+  const c = getChecked(day);
+  setChecked(day, id, !c[id]);
+  renderDay(day);
+}
+
+function resetDay(day) {
+  resetChecked(day);
+  renderDay(day);
+}
+
+function selectDay(day) {
+  activeDay = day;
+  renderTabs();
+  if (day === 'overview') renderOverview();
+  else renderDay(day);
+}
+
+function fullDay(d) {
+  return {Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday'}[d];
+}
+
+// Show install hint if not standalone
+function showInstallHint() {
+  if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) return;
+  const dismissed = localStorage.getItem('install_hint_dismissed');
+  if (dismissed) return;
+  const hint = document.createElement('div');
+  hint.className = 'install-hint';
+  hint.innerHTML = `
+    <strong>Add to Home Screen</strong> for an app-like experience:<br>
+    Tap the <strong>Share</strong> button ⎋ → <strong>Add to Home Screen</strong>
+    <br><span class="dismiss" onclick="this.parentElement.remove(); localStorage.setItem('install_hint_dismissed','1')">Dismiss</span>
+  `;
+  document.getElementById('content').after(hint);
+}
+
+// Tips section
+function renderTips() {
+  const tips = document.createElement('div');
+  tips.className = 'tips-section';
+  tips.innerHTML = `
+    <div class="tips-toggle" onclick="this.querySelector('.arrow').classList.toggle('open'); this.nextElementSibling.classList.toggle('open')">
+      Timezone Tips <span class="arrow">▼</span>
+    </div>
+    <div class="tips-body">
+      <div class="tip"><strong>WE overlap: 11:00–20:00 GET.</strong> Job apps and follow-ups land during European business hours.</div>
+      <div class="tip"><strong>10:00–11:00 buffer.</strong> Plan and earn before WE offices open.</div>
+      <div class="tip"><strong>Resume at 18:30 = 16:30 CEST.</strong> Emails hit top of inbox next morning.</div>
+      <div class="tip"><strong>Winter shift.</strong> Nov–Mar gap grows to 3h. Push blocks +1 hour.</div>
+      <div class="tip"><strong>Hard stop 19:30.</strong> That's 17:30 CEST. You're done.</div>
+    </div>
+  `;
+  document.body.appendChild(tips);
+}
+
+// Init
+document.getElementById('currentDate').textContent = dateStr();
+renderTabs();
+if (activeDay === 'overview') renderOverview();
+else renderDay(activeDay);
+showInstallHint();
+renderTips();
+
+// Auto-clear old checklist data (keep last 3 days)
+try {
+  const keys = Object.keys(localStorage).filter(k => k.startsWith('sched_'));
+  const today = new Date().toISOString().slice(0,10);
+  keys.forEach(k => {
+    const date = k.slice(-10);
+    if (date < new Date(Date.now() - 3*86400000).toISOString().slice(0,10)) {
+      localStorage.removeItem(k);
+    }
+  });
+} catch(e) {}
+</script>
+
+</body>
+</html>
