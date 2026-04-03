@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="My Hub">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f1117">
+<title>Productivity Hub</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden}
+  body{font-family:'Inter',-apple-system,sans-serif;background:#0f1117;color:#e0e0e6;-webkit-font-smoothing:antialiased}
+
+  /* ── Bottom Tab Bar ── */
+  .tab-bar{
+    position:fixed;bottom:0;left:0;right:0;
+    background:#1a1c27;border-top:1px solid #2a2d3a;
+    display:flex;justify-content:space-around;
+    padding:6px 0 max(6px,env(safe-area-inset-bottom));
+    z-index:100;
+  }
+  .tab-btn{
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:6px 12px;border-radius:10px;border:none;background:none;
+    color:#6b7094;font-size:10px;font-weight:600;cursor:pointer;
+    transition:all .2s;font-family:inherit;
+  }
+  .tab-btn .icon{font-size:22px;line-height:1}
+  .tab-btn.active{color:#6ee7b7}
+  .tab-btn:active{transform:scale(.9)}
+
+  /* ── Page Container ── */
+  .page{
+    position:absolute;top:0;left:0;right:0;
+    bottom:60px; /* tab bar height */
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
+    display:none;
+    padding:max(12px,env(safe-area-inset-top)) 16px 16px;
+  }
+  .page.active{display:block}
+
+  /* ════════════════════════════════════════ */
+  /* PAGE 1: SCHEDULE                        */
+  /* ════════════════════════════════════════ */
+  .sch-header{text-align:center;margin-bottom:6px;padding-top:8px}
+  .sch-header h1{font-size:22px;font-weight:700;background:linear-gradient(135deg,#6ee7b7,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+  .sch-header p{color:#6b7094;font-size:12px}
+
+  .tz-row{display:flex;justify-content:center;gap:8px;margin:10px 0 14px;flex-wrap:wrap}
+  .tz-pill{font-size:10px;font-weight:600;padding:4px 10px;border-radius:16px;background:#1a1c27;border:1px solid #2a2d3a;color:#8b8fa3}
+  .tz-pill span{color:#6ee7b7}
+
+  .current-date{text-align:center;font-size:12px;color:#4a5070;margin-bottom:12px}
+
+  .sch-tabs{display:flex;gap:3px;justify-content:center;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 0}
+  .sch-tab{padding:9px 13px;border-radius:10px;border:1px solid #2a2d3a;background:#1a1c27;color:#6b7094;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s;flex-shrink:0;min-width:40px;text-align:center}
+  .sch-tab:active{transform:scale(.95)}
+  .sch-tab.active{background:#3b82f6;border-color:#3b82f6;color:#fff;box-shadow:0 2px 12px #3b82f644}
+  .sch-tab.today:not(.active){border-color:#6ee7b7;color:#6ee7b7}
+  .sch-tab.off-day.active{background:#f59e0b;border-color:#f59e0b}
+
+  .sch-view{max-width:700px;margin:0 auto}
+  .sch-day-title{font-size:18px;font-weight:700;margin-bottom:2px}
+  .sch-day-sub{font-size:11px;color:#6b7094;margin-bottom:14px}
+
+  .sch-progress{max-width:700px;margin:0 auto 14px;background:#1a1c27;border-radius:10px;padding:10px 14px;border:1px solid #2a2d3a}
+  .sch-prog-top{display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px}
+  .sch-prog-top span:first-child{color:#6ee7b7;font-weight:600}
+  .sch-prog-top span:last-child{color:#6b7094}
+  .sch-prog-track{height:5px;background:#2a2d3a;border-radius:3px;overflow:hidden}
+  .sch-prog-fill{height:100%;background:linear-gradient(90deg,#6ee7b7,#3b82f6);border-radius:3px;transition:width .4s}
+
+  .tb{display:flex;gap:10px;margin-bottom:5px}
+  .tb-time{width:50px;text-align:right;font-size:11px;color:#6b7094;padding-top:12px;flex-shrink:0;font-weight:600}
+  .tb-we{display:block;font-size:9px;color:#3d4260;margin-top:1px;font-weight:500}
+  .tb-card{flex:1;border-radius:10px;padding:12px 14px;border-left:3px solid;transition:transform .12s;cursor:pointer;position:relative}
+  .tb-card:active{transform:scale(.98)}
+  .tb-card-top{display:flex;justify-content:space-between;align-items:center}
+  .tb-title{font-weight:600;font-size:13px;margin-bottom:2px}
+  .tb-desc{font-size:11px;opacity:.7;line-height:1.4}
+  .tb-dur{font-size:10px;opacity:.45;font-weight:600;flex-shrink:0;margin-left:6px}
+  .tb-check{width:20px;height:20px;border-radius:5px;border:2px solid #3a3d50;flex-shrink:0;margin-left:6px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .tb-check.checked{background:#6ee7b7;border-color:#6ee7b7}
+  .tb-check.checked::after{content:'✓';color:#0f1117;font-size:12px;font-weight:700}
+  .tb-card.done{opacity:.4}
+  .tb-card.done .tb-title{text-decoration:line-through}
+
+  .cat-planning{background:#1e293b;border-color:#6ee7b7}.cat-planning .tb-title{color:#6ee7b7}
+  .cat-income{background:#1a1e2e;border-color:#818cf8}.cat-income .tb-title{color:#818cf8}
+  .cat-jobs{background:#1e1a2e;border-color:#c084fc}.cat-jobs .tb-title{color:#c084fc}
+  .cat-writing{background:#2a1a1e;border-color:#fb7185}.cat-writing .tb-title{color:#fb7185}
+  .cat-break{background:#1a2420;border-color:#34d399}.cat-break .tb-title{color:#34d399}
+  .cat-life{background:#2a2410;border-color:#fbbf24}.cat-life .tb-title{color:#fbbf24}
+  .cat-offday{background:#1c1f12;border-color:#f59e0b}.cat-offday .tb-title{color:#f59e0b}
+
+  .sch-overview{max-width:700px;margin:0 auto}
+  .sch-og{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
+  @media(min-width:500px){.sch-og{grid-template-columns:1fr 1fr}}
+  .sch-oc{background:#1a1c27;border:1px solid #2a2d3a;border-radius:10px;padding:14px}
+  .sch-oc h3{font-size:13px;font-weight:600;margin-bottom:6px}
+  .sch-os{display:flex;justify-content:space-between;font-size:11px;padding:3px 0}
+  .sch-os .sl{color:#6b7094}
+  .sch-os .sv{font-weight:600}
+
+  .sch-reset{display:block;margin:12px auto;padding:7px 18px;border-radius:8px;border:1px solid #2a2d3a;background:#1a1c27;color:#6b7094;font-size:11px;cursor:pointer}
+
+  /* ════════════════════════════════════════ */
+  /* PAGE 2: MOBILITY                        */
+  /* ════════════════════════════════════════ */
+  #page-mobility{background:#FFF9F0;color:#3D3D4E}
+  .mob-header{text-align:center;padding:8px 0 10px}
+  .mob-header h1{font-size:22px;font-weight:800;color:#5A4E8C;margin-bottom:2px}
+  .mob-header p{font-size:12px;color:#8E8E93}
+
+  .mob-phases{display:flex;gap:4px;justify-content:center;margin-bottom:12px;position:sticky;top:0;z-index:10;background:#FFF9F0;padding:6px 0}
+  .mob-pt{padding:8px 14px;border-radius:20px;font-size:11px;font-weight:600;border:1.5px solid #E8DDD0;background:white;color:#8E8E93;cursor:pointer;transition:all .2s}
+  .mob-pt:active{transform:scale(.95)}
+  .mob-pt.active{color:white;border-color:transparent}
+  .mob-pt[data-p="all"].active{background:#B5A8D6}
+  .mob-pt[data-p="warmup"].active{background:#FFB5C2}
+  .mob-pt[data-p="mobility"].active{background:#B5A8D6}
+  .mob-pt[data-p="cooldown"].active{background:#95D4B5}
+
+  .mob-progress{max-width:700px;margin:0 auto 12px;background:white;border-radius:10px;padding:10px 14px;border:1px solid #F0E8DD}
+  .mob-prog-top{display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px}
+  .mob-prog-top span:first-child{font-weight:600;color:#5A4E8C}
+  .mob-prog-top span:last-child{color:#8E8E93}
+  .mob-prog-track{height:5px;background:#F0E8DD;border-radius:3px;overflow:hidden}
+  .mob-prog-fill{height:100%;border-radius:3px;transition:width .4s;background:linear-gradient(90deg,#FFB5C2,#B5A8D6,#95D4B5)}
+
+  .mob-list{max-width:700px;margin:0 auto}
+
+  .mob-card{background:white;border-radius:14px;margin-bottom:8px;border:1px solid #F0E8DD;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.03);transition:all .2s}
+  .mob-card.completed{opacity:.45}
+  .mob-card.active-ex{border-color:#B5A8D6;box-shadow:0 2px 14px rgba(181,168,214,.25)}
+
+  .mob-ch{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer}
+  .mob-num{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:white;flex-shrink:0}
+  .warmup .mob-num{background:#FFB5C2}
+  .mobility .mob-num{background:#B5A8D6}
+  .cooldown .mob-num{background:#95D4B5}
+  .mob-info{flex:1;min-width:0}
+  .mob-name{font-weight:700;font-size:13px;color:#3D3D4E}
+  .mob-target{font-size:10px;color:#B0A8C0;margin-top:1px}
+  .mob-time{font-size:10px;font-weight:600;padding:3px 8px;border-radius:10px;background:#F8F4EE;color:#8E8E93;flex-shrink:0}
+
+  .mob-body{display:none;padding:0 14px 14px}
+  .mob-body.open{display:block}
+  .mob-illus{background:#FBF7F2;border-radius:10px;padding:14px;margin-bottom:10px;text-align:center}
+  .mob-illus svg{max-width:100%;height:auto}
+  .mob-steps{font-size:12px;line-height:1.6;color:#5A5A6E;margin-bottom:10px}
+  .mob-steps ol{padding-left:16px}
+  .mob-steps li{margin-bottom:3px}
+  .mob-tip{background:#FFF3CD;border-radius:8px;padding:7px 10px;font-size:11px;margin-top:6px;color:#8B7000}
+  .mob-actions{display:flex;gap:6px;flex-wrap:wrap}
+  .mob-btn{padding:9px 14px;border-radius:10px;font-size:11px;font-weight:600;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;font-family:inherit}
+  .mob-btn:active{transform:scale(.95)}
+  .mob-btn-timer{background:#B5A8D6;color:white}
+  .mob-btn-timer.running{background:#FF7B7B}
+  .mob-btn-video{background:#F0EBFF;color:#5A4E8C;text-decoration:none}
+  .mob-btn-done{background:#E8F8EE;color:#2D8B5A}
+  .mob-btn-done.is-done{background:#2D8B5A;color:white}
+  .mob-timer{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;color:#5A4E8C;text-align:center;padding:6px 0;display:none}
+  .mob-timer.show{display:block}
+  .mob-reset{display:block;margin:10px auto;padding:7px 18px;border-radius:8px;border:1px solid #E8DDD0;background:white;color:#8E8E93;font-size:11px;cursor:pointer}
+
+  /* ════════════════════════════════════════ */
+  /* PAGE 3: QUICK GOALS                     */
+  /* ════════════════════════════════════════ */
+  .goals-header{text-align:center;padding:8px 0 12px}
+  .goals-header h1{font-size:22px;font-weight:700;background:linear-gradient(135deg,#c084fc,#fb7185);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+  .goals-header p{color:#6b7094;font-size:12px}
+
+  .goals-date{text-align:center;font-size:12px;color:#4a5070;margin-bottom:16px}
+
+  .goals-section{max-width:700px;margin:0 auto 12px}
+  .goals-sec-header{font-size:13px;font-weight:700;padding:8px 12px;border-radius:10px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .goals-item{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;background:#1a1c27;border:1px solid #2a2d3a;border-radius:10px;margin-bottom:4px}
+  .goals-check{width:22px;height:22px;border-radius:6px;border:2px solid #3a3d50;flex-shrink:0;margin-top:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .goals-check.checked{background:#6ee7b7;border-color:#6ee7b7}
+  .goals-check.checked::after{content:'✓';color:#0f1117;font-size:13px;font-weight:700}
+  .goals-input{flex:1;background:none;border:none;color:#e0e0e6;font-family:inherit;font-size:13px;outline:none;padding:4px 0;border-bottom:1px solid #2a2d3a22}
+  .goals-input::placeholder{color:#4a5070}
+  .goals-add{display:block;margin:4px auto 0;padding:6px 14px;border-radius:8px;border:1px dashed #2a2d3a;background:none;color:#6b7094;font-size:11px;cursor:pointer;font-family:inherit}
+
+  .goals-notes{max-width:700px;margin:0 auto 12px}
+  .goals-notes textarea{width:100%;min-height:80px;background:#1a1c27;border:1px solid #2a2d3a;border-radius:10px;padding:12px;color:#e0e0e6;font-family:inherit;font-size:12px;outline:none;resize:vertical}
+  .goals-notes textarea::placeholder{color:#4a5070}
+  .goals-notes label{display:block;font-size:12px;color:#6b7094;margin-bottom:6px;font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ── TAB BAR ── -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showPage('schedule')"><span class="icon">📅</span>Schedule</button>
+  <button class="tab-btn" onclick="showPage('goals')"><span class="icon">🎯</span>Goals</button>
+  <button class="tab-btn" onclick="showPage('mobility')"><span class="icon">🌿</span>Mobility</button>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- PAGE 1: SCHEDULE                        -->
+<!-- ════════════════════════════════════════ -->
+<div class="page active" id="page-schedule">
+  <div class="sch-header">
+    <h1>Weekly Schedule</h1>
+    <p>Tbilisi · Self-directed · Wednesday off</p>
+  </div>
+  <div class="tz-row">
+    <div class="tz-pill">You: <span>GET UTC+4</span></div>
+    <div class="tz-pill">WE hours: <span>11:00–20:00</span> your time</div>
+  </div>
+  <div class="current-date" id="schDate"></div>
+  <div class="sch-tabs" id="schTabs"></div>
+  <div id="schContent"></div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- PAGE 2: GOALS                           -->
+<!-- ════════════════════════════════════════ -->
+<div class="page" id="page-goals">
+  <div class="goals-header">
+    <h1>Daily Goals</h1>
+    <p>Plan your day · Check off as you go</p>
+  </div>
+  <div class="goals-date" id="goalsDate"></div>
+  <div id="goalsContent"></div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<!-- PAGE 3: MOBILITY                        -->
+<!-- ════════════════════════════════════════ -->
+<div class="page" id="page-mobility">
+  <div class="mob-header">
+    <h1>🌿 Daily Mobility Flow</h1>
+    <p>25 minutes · No equipment · Low impact</p>
+  </div>
+  <div class="mob-phases" id="mobPhases"></div>
+  <div class="mob-progress"><div class="mob-prog-top"><span id="mobProgLabel">Ready</span><span id="mobProgCount">0/12</span></div><div class="mob-prog-track"><div class="mob-prog-fill" id="mobProgFill" style="width:0%"></div></div></div>
+  <div class="mob-list" id="mobList"></div>
+  <button class="mob-reset" onclick="mobResetAll()">Reset progress</button>
+</div>
+
+<script>
+// ── PAGE SWITCHING ──
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// SCHEDULE
+// ══════════════════════════════════════════
+const SLABELS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const SDAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function toWE(t){if(!t||t==='—')return'';const[h,m]=t.split(':').map(Number);const w=h-2;return w>=0?String(w).padStart(2,'0')+':'+String(m).padStart(2,'0')+' CEST':''}
+function todayKey(){return SDAYS[new Date().getDay()]}
+function dateStr(){return new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+
+const workday=[
+  {id:'plan-am',time:'10:00',dur:'30m',cat:'planning',title:'Morning Planning',desc:'Set daily goals, review priorities, scan job boards.'},
+  {id:'tm-am',time:'10:30',dur:'2h',cat:'income',title:'TranscribeMe — Deep Focus',desc:'Peak energy → direct income. Batch tasks, no distractions.'},
+  {id:'exercise',time:'12:30',dur:'30m',cat:'break',title:'Break — Mobility Flow',desc:'Do your mobility routine! Tap the 🌿 tab.'},
+  {id:'jobs',time:'13:00',dur:'1.5h',cat:'jobs',title:'Job Applications & Research',desc:'Apply to remote roles, tailor cover letters. Prime WE hours.'},
+  {id:'lunch',time:'14:30',dur:'1h',cat:'life',title:'Lunch + Chores',desc:'Cook, tidy kitchen, quick household task.'},
+  {id:'writing',time:'15:30',dur:'1.5h',cat:'writing',title:'Writing Samples & Portfolio',desc:'Draft/revise content writing samples.'},
+  {id:'tm-pm',time:'17:00',dur:'1.5h',cat:'income',title:'TranscribeMe — Afternoon',desc:'Second earning session, still within WE hours.'},
+  {id:'resume',time:'18:30',dur:'30m',cat:'jobs',title:'Resume & Professional Dev',desc:'Update resume, LinkedIn, follow-ups.'},
+  {id:'review',time:'19:00',dur:'30m',cat:'planning',title:'Day Review & Tomorrow Prep',desc:'Log accomplishments, set tomorrow\'s top 3.'},
+  {id:'evening',time:'19:30',dur:'—',cat:'break',title:'Evening — You\'re Off',desc:'Dinner, relax, personal time.'},
+];
+const wednesday=[
+  {id:'wed-plan',time:'10:30',dur:'30m',cat:'planning',title:'Relaxed Morning',desc:'Sleep in. Light planning, review the week.'},
+  {id:'wed-city',time:'11:00',dur:'—',cat:'offday',title:'City Errands',desc:'Appointments, admin, shopping, banking.'},
+  {id:'wed-rest',time:'—',dur:'—',cat:'break',title:'Recharge',desc:'Exercise, explore, socialize.'},
+];
+const saturday=[
+  {id:'sat-plan',time:'10:30',dur:'30m',cat:'planning',title:'Morning Planning',desc:'Quick review.'},
+  {id:'sat-tm',time:'11:00',dur:'2h',cat:'income',title:'TranscribeMe — Bonus',desc:'Extra earning session.'},
+  {id:'sat-ex',time:'13:00',dur:'30m',cat:'break',title:'Break — Exercise',desc:'Longer workout or walk.'},
+  {id:'sat-wr',time:'13:30',dur:'1.5h',cat:'writing',title:'Writing — Extended',desc:'Longer pieces, editing.'},
+  {id:'sat-life',time:'15:00',dur:'1h',cat:'life',title:'Lunch + Household',desc:'Meal prep, cooking.'},
+  {id:'sat-jobs',time:'16:00',dur:'1h',cat:'jobs',title:'Job Search — Review',desc:'Review apps, update tracker.'},
+  {id:'sat-off',time:'17:00',dur:'—',cat:'break',title:'Afternoon Off',desc:'Explore, social, rest.'},
+];
+const sunday=[
+  {id:'sun-rev',time:'11:00',dur:'1h',cat:'planning',title:'Weekly Review',desc:'Set goals for the week.'},
+  {id:'sun-prep',time:'12:00',dur:'1h',cat:'life',title:'Meal Prep',desc:'Prep meals, clean, laundry.'},
+  {id:'sun-rest',time:'13:00',dur:'—',cat:'break',title:'Full Rest',desc:'No work screens.'},
+];
+const schedules={Mon:workday,Tue:workday,Wed:wednesday,Thu:workday,Fri:workday,Sat:saturday,Sun:sunday};
+const subtitles={Mon:'Start the week strong',Tue:'Maintain momentum',Wed:'City day + recharge',Thu:'Refreshed from break',Fri:'Finish the week',Sat:'Half day — earn & write',Sun:'Rest & plan'};
+
+let schActiveDay=todayKey();
+function schCheckKey(d){return'sch_'+d+'_'+new Date().toISOString().slice(0,10)}
+function schGetChecked(d){try{return JSON.parse(localStorage.getItem(schCheckKey(d)))||{}}catch(e){return{}}}
+function schSetChecked(d,id,v){const c=schGetChecked(d);c[id]=v;localStorage.setItem(schCheckKey(d),JSON.stringify(c))}
+
+function schRenderTabs(){
+  const today=todayKey();
+  document.getElementById('schTabs').innerHTML=SLABELS.map(d=>{
+    const isOff=d==='Wed'||d==='Sun';
+    return`<div class="sch-tab ${d===schActiveDay?'active':''} ${isOff?'off-day':''} ${d===today&&d!==schActiveDay?'today':''}" onclick="schSelect('${d}')">${d}</div>`
+  }).join('')+`<div class="sch-tab ${schActiveDay==='overview'?'active':''}" onclick="schSelect('overview')">⊞</div>`;
+}
+
+function schRenderDay(day){
+  const blocks=schedules[day],checked=schGetChecked(day);
+  const checkable=blocks.filter(b=>b.cat!=='break'&&b.cat!=='offday');
+  const done=checkable.filter(b=>checked[b.id]).length,total=checkable.length,pct=total?Math.round(done/total*100):0;
+  let h=`<div class="sch-view">
+    <div class="sch-progress"><div class="sch-prog-top"><span>Progress</span><span>${done}/${total} · ${pct}%</span></div><div class="sch-prog-track"><div class="sch-prog-fill" style="width:${pct}%"></div></div></div>
+    <div class="sch-day-title">${{Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday'}[day]}</div>
+    <div class="sch-day-sub">${subtitles[day]}</div>`;
+  blocks.forEach(b=>{
+    const isDone=checked[b.id],canCheck=b.cat!=='break'&&b.cat!=='offday';
+    h+=`<div class="tb"><div class="tb-time">${b.time}<span class="tb-we">${toWE(b.time)}</span></div>
+    <div class="tb-card cat-${b.cat} ${isDone?'done':''}" ${canCheck?`onclick="schToggle('${day}','${b.id}')"`:''}><div class="tb-card-top"><div><div class="tb-title">${b.title}</div><div class="tb-desc">${b.desc}</div></div><div style="display:flex;align-items:center"><span class="tb-dur">${b.dur}</span>${canCheck?`<div class="tb-check ${isDone?'checked':''}"></div>`:''}</div></div></div></div>`;
+  });
+  h+=`<button class="sch-reset" onclick="schReset('${day}')">Reset checkmarks</button></div>`;
+  document.getElementById('schContent').innerHTML=h;
+}
+
+function schRenderOverview(){
+  document.getElementById('schContent').innerHTML=`<div class="sch-overview"><div class="sch-og">
+    <div class="sch-oc"><h3 style="color:#818cf8">TranscribeMe</h3><div class="sch-os"><span class="sl">4 workdays</span><span class="sv" style="color:#818cf8">14h</span></div><div class="sch-os"><span class="sl">Saturday</span><span class="sv" style="color:#818cf8">2h</span></div><div class="sch-os"><span class="sl">Total</span><span class="sv" style="color:#818cf8">~16h/wk</span></div></div>
+    <div class="sch-oc"><h3 style="color:#c084fc">Job Search</h3><div class="sch-os"><span class="sl">Applications</span><span class="sv" style="color:#c084fc">6h</span></div><div class="sch-os"><span class="sl">Resume/dev</span><span class="sv" style="color:#c084fc">2h</span></div><div class="sch-os"><span class="sl">Total</span><span class="sv" style="color:#c084fc">~9h/wk</span></div></div>
+    <div class="sch-oc"><h3 style="color:#fb7185">Writing</h3><div class="sch-os"><span class="sl">4 workdays</span><span class="sv" style="color:#fb7185">6h</span></div><div class="sch-os"><span class="sl">Saturday</span><span class="sv" style="color:#fb7185">1.5h</span></div><div class="sch-os"><span class="sl">Total</span><span class="sv" style="color:#fb7185">~7.5h/wk</span></div></div>
+    <div class="sch-oc"><h3 style="color:#6ee7b7">Planning</h3><div class="sch-os"><span class="sl">Daily</span><span class="sv" style="color:#6ee7b7">~5h</span></div><div class="sch-os"><span class="sl">Sunday</span><span class="sv" style="color:#6ee7b7">1h</span></div><div class="sch-os"><span class="sl">Total</span><span class="sv" style="color:#6ee7b7">~6h/wk</span></div></div>
+    <div class="sch-oc"><h3 style="color:#fbbf24">Life Admin</h3><div class="sch-os"><span class="sl">Daily chores</span><span class="sv" style="color:#fbbf24">~7h</span></div><div class="sch-os"><span class="sl">Wed city</span><span class="sv" style="color:#fbbf24">Full</span></div></div>
+    <div class="sch-oc"><h3 style="color:#34d399">Rest</h3><div class="sch-os"><span class="sl">Exercise</span><span class="sv" style="color:#34d399">~2.5h</span></div><div class="sch-os"><span class="sl">Free from</span><span class="sv" style="color:#34d399">19:30</span></div><div class="sch-os"><span class="sl">Days off</span><span class="sv" style="color:#34d399">Wed+Sun</span></div></div>
+  </div></div>`;
+}
+
+function schSelect(d){schActiveDay=d;schRenderTabs();d==='overview'?schRenderOverview():schRenderDay(d)}
+function schToggle(d,id){const c=schGetChecked(d);schSetChecked(d,id,!c[id]);schRenderDay(d)}
+function schReset(d){localStorage.removeItem(schCheckKey(d));schRenderDay(d)}
+
+document.getElementById('schDate').textContent=dateStr();
+schRenderTabs();
+schActiveDay==='overview'?schRenderOverview():schRenderDay(schActiveDay);
+
+// ══════════════════════════════════════════
+// GOALS
+// ══════════════════════════════════════════
+const goalSections=[
+  {id:'top3',title:'🎯 Top 3 Priorities',color:'#c084fc',items:3},
+  {id:'transcribe',title:'💰 TranscribeMe',color:'#818cf8',items:2},
+  {id:'jobs',title:'🔍 Job Applications',color:'#c084fc',items:3},
+  {id:'writing',title:'✍️ Writing Samples',color:'#fb7185',items:2},
+  {id:'resume',title:'📄 Resume & LinkedIn',color:'#3b82f6',items:2},
+  {id:'personal',title:'🧘 Personal Care',color:'#34d399',items:3},
+  {id:'household',title:'🏠 Household & Chores',color:'#fbbf24',items:3},
+  {id:'grocery',title:'🛒 Grocery & Errands',color:'#f59e0b',items:3},
+];
+
+function goalsKey(){return'goals_'+new Date().toISOString().slice(0,10)}
+function goalsLoad(){try{return JSON.parse(localStorage.getItem(goalsKey()))||{}}catch(e){return{}}}
+function goalsSave(data){localStorage.setItem(goalsKey(),JSON.stringify(data))}
+
+function goalsRender(){
+  document.getElementById('goalsDate').textContent=dateStr();
+  const data=goalsLoad();
+  let html='';
+  goalSections.forEach(sec=>{
+    const secData=data[sec.id]||{items:Array(sec.items).fill({text:'',done:false})};
+    const items=secData.items||Array(sec.items).fill({text:'',done:false});
+    html+=`<div class="goals-section">
+      <div class="goals-sec-header" style="background:${sec.color}22;color:${sec.color}">${sec.title}</div>`;
+    items.forEach((item,i)=>{
+      html+=`<div class="goals-item">
+        <div class="goals-check ${item.done?'checked':''}" onclick="goalsToggle('${sec.id}',${i})"></div>
+        <input class="goals-input" placeholder="Add goal..." value="${(item.text||'').replace(/"/g,'&quot;')}" onchange="goalsText('${sec.id}',${i},this.value)" ${item.done?'style="text-decoration:line-through;opacity:.5"':''}/>
+      </div>`;
+    });
+    html+=`<button class="goals-add" onclick="goalsAddItem('${sec.id}')">+ Add item</button></div>`;
+  });
+
+  html+=`<div class="goals-notes"><label>📝 Notes & Reflection</label><textarea placeholder="Morning intention, email action items, evening reflection..." onchange="goalsNote(this.value)">${(data._notes||'').replace(/</g,'&lt;')}</textarea></div>`;
+  document.getElementById('goalsContent').innerHTML=html;
+}
+
+function goalsToggle(sec,i){
+  const data=goalsLoad();
+  if(!data[sec])data[sec]={items:Array(goalSections.find(s=>s.id===sec).items).fill({text:'',done:false})};
+  if(!data[sec].items[i])data[sec].items[i]={text:'',done:false};
+  data[sec].items[i]={...data[sec].items[i],done:!data[sec].items[i].done};
+  goalsSave(data);goalsRender();
+}
+function goalsText(sec,i,val){
+  const data=goalsLoad();
+  if(!data[sec])data[sec]={items:Array(goalSections.find(s=>s.id===sec).items).fill({text:'',done:false})};
+  if(!data[sec].items[i])data[sec].items[i]={text:'',done:false};
+  data[sec].items[i]={...data[sec].items[i],text:val};
+  goalsSave(data);
+}
+function goalsAddItem(sec){
+  const data=goalsLoad();
+  if(!data[sec])data[sec]={items:[]};
+  data[sec].items.push({text:'',done:false});
+  goalsSave(data);goalsRender();
+}
+function goalsNote(val){const data=goalsLoad();data._notes=val;goalsSave(data)}
+
+goalsRender();
+
+// ══════════════════════════════════════════
+// MOBILITY
+// ══════════════════════════════════════════
+const mobEx=[
+  {id:1,phase:'warmup',name:'Neck Circles',time:'1 min',seconds:60,target:'Neck · Cervical spine',steps:['Stand tall, shoulders relaxed, chin slightly tucked.','Slowly roll head in a full circle — ear to shoulder, chin to chest.','30s clockwise, 30s counter-clockwise.'],tip:'Never force your neck backwards.',video:'https://www.youtube.com/results?search_query=neck+circles+mobility+exercise',svg:'<svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg"><circle cx="80" cy="30" r="14" fill="#FFD6E0" stroke="#FFB5C2" stroke-width="2"/><path d="M80 44 L80 85" stroke="#FFB5C2" stroke-width="2.5" stroke-linecap="round"/><path d="M58 62 L80 54 L102 62" stroke="#FFB5C2" stroke-width="2.5" stroke-linecap="round" fill="none"/><path d="M62 14 Q80 4 98 14" stroke="#B5A8D6" stroke-width="1.5" fill="none" stroke-dasharray="3 2"/><path d="M98 14 Q108 30 98 46" stroke="#B5A8D6" stroke-width="1.5" fill="none" stroke-dasharray="3 2"/><path d="M98 46 Q80 56 62 46" stroke="#B5A8D6" stroke-width="1.5" fill="none" stroke-dasharray="3 2"/><path d="M62 46 Q52 30 62 14" stroke="#B5A8D6" stroke-width="1.5" fill="none" stroke-dasharray="3 2"/></svg>'},
+  {id:2,phase:'warmup',name:'Shoulder Rolls & Arm Circles',time:'1 min',seconds:60,target:'Shoulders · Upper back',steps:['Roll shoulders forward 15s, backward 15s.','Extend arms, small circles growing larger 15s.','Reverse direction 15s.'],tip:'Keep core engaged, avoid swaying.',video:'https://www.youtube.com/results?search_query=shoulder+rolls+arm+circles+warm+up',svg:'<svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg"><circle cx="80" cy="25" r="12" fill="#FFD6E0" stroke="#FFB5C2" stroke-width="2"/><path d="M80 37 L80 78" stroke="#FFB5C2" stroke-width="2.5" stroke-linecap="round"/><path d="M30 55 L80 40 L130 55" stroke="#FFB5C2" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="30" cy="55" r="12" fill="none" stroke="#B5A8D6" stroke-width="1.5" stroke-dasharray="3 2"/><circle cx="130" cy="55" r="12" fill="none" stroke="#B5A8D6" stroke-width="1.5" stroke-dasharray="3 2"/></svg>'},
+  {id:3,phase:'warmup',name:'Hip Circles',time:'1 min',seconds:60,target:'Hips · Lower back · Core',steps:['Stand feet hip-width, hands on hips.','Large circles like hula-hooping.','30s each direction.'],tip:'Make circles as big and smooth as you can.',video:'https://www.youtube.com/results?search_query=standing+hip+circles+mobility',svg:'<svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg"><circle cx="80" cy="20" r="11" fill="#FFD6E0" stroke="#FFB5C2" stroke-width="2"/><path d="M80 31 L80 60" stroke="#FFB5C2" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="80" cy="62" rx="20" ry="12" fill="none" stroke="#B5A8D6" stroke-width="2" stroke-dasharray="4 3"/><path d="M68 60 L58 92" stroke="#FFB5C2" stroke-width="2.5" stroke-linecap="round"/><path d="M92 60 L102 92" stroke="#FFB5C2" stroke-width="2.5" stroke-linecap="round"/></svg>'},
+  {id:4,phase:'mobility',name:'Cat-Cow Flow',time:'2 min',seconds:120,target:'Spine · Core · Back',steps:['Hands and knees — wrists under shoulders.','<b>Cow:</b> Inhale, belly drops, chest lifts.','<b>Cat:</b> Exhale, round spine, tuck chin.','10–12 slow cycles.'],tip:'Movement starts from your pelvis, not your shoulders.',video:'https://www.youtube.com/results?search_query=cat+cow+stretch+tutorial+beginner',svg:'<svg viewBox="0 0 240 80" xmlns="http://www.w3.org/2000/svg"><text x="60" y="12" font-size="9" fill="#B5A8D6" font-family="Inter" text-anchor="middle">COW</text><path d="M80 30 Q60 45 50 65" stroke="#FFB5C2" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="85" cy="28" r="7" fill="#FFD6E0" stroke="#FFB5C2" stroke-width="1.5"/><path d="M45 65 L40 78" stroke="#FFB5C2" stroke-width="1.5" stroke-linecap="round"/><path d="M55 60 L55 78" stroke="#FFB5C2" stroke-width="1.5" stroke-linecap="round"/><line x1="120" y1="10" x2="120" y2="75" stroke="#E8DDD0" stroke-width="1" stroke-dasharray="3 3"/><text x="180" y="12" font-size="9" fill="#95D4B5" font-family="Inter" text-anchor="middle">CAT</text><path d="M195 35 Q180 20 165 35 Q150 50 145 65" stroke="#95D4B5" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="200" cy="38" r="7" fill="#E8F8EE" stroke="#95D4B5" stroke-width="1.5"/><path d="M140 65 L138 78" stroke="#95D4B5" stroke-width="1.5" stroke-linecap="round"/><path d="M150 58 L150 78" stroke="#95D4B5" stroke-width="1.5" stroke-linecap="round"/></svg>'},
+  {id:5,phase:'mobility',name:'Thread the Needle',time:'2 min',seconds:120,target:'T-spine · Shoulders',steps:['Start on all fours.','Reach right arm under left, slide along floor.','Right shoulder and temple rest on ground.','Hold 20–30s, then reach right arm to ceiling.','Switch sides.'],tip:'Keep hips stacked over knees. Rotate from mid-back.',video:'https://www.youtube.com/results?search_query=thread+the+needle+stretch+tutorial',svg:'<svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="35" r="8" fill="#F0EBFF" stroke="#B5A8D6" stroke-width="1.5"/><path d="M58 38 L110 48" stroke="#B5A8D6" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M110 48 L110 75" stroke="#B5A8D6" stroke-width="1.5" stroke-linecap="round"/><path d="M125 48 L125 75" stroke="#B5A8D6" stroke-width="1.5" stroke-linecap="round"/><path d="M50 42 L20 48" stroke="#B5A8D6" stroke-width="1.5" stroke-linecap="round"/><text x="15" y="60" font-size="8" fill="#B5A8D6" font-family="Inter">slides under</text><path d="M80 40 L90 18" stroke="#C3B1E1" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="3 2"/><text x="92" y="14" font-size="8" fill="#C3B1E1" font-family="Inter">then up ↑</text></svg>'},
+  {id:6,phase:'mobility',name:"World's Greatest Stretch",time:'3 min',seconds:180,target:'Full body · Hips · T-spine',steps:['Deep lunge, right foot forward, hands inside.','Drop right elbow toward instep.','Rotate right arm to ceiling, open chest.','Shift hips back, straighten front leg for hamstring.','3 reps each side.'],tip:'The single best full-body mobility exercise. Don\'t rush.',video:'https://www.youtube.com/results?search_query=world%27s+greatest+stretch+tutorial',svg:'<svg viewBox="0 0 200 90" xmlns="http://www.w3.org/2000/svg"><circle cx="85" cy="15" r="8" fill="#FFD6E0" stroke="#FFB5C2" stroke-width="1.5"/><path d="M85 23 L78 48" stroke="#FFB5C2" stroke-width="2" stroke-linecap="round"/><path d="M78 48 L55 80" stroke="#FFB5C2" stroke-width="1.5" stroke-linecap="round"/><path d="M78 48 L130 82" stroke="#FFB5C2" stroke-width="1.5" stroke-linecap="round"/><path d="M82 32 L60 75" stroke="#FFB5C2" stroke-width="1.5" stroke-linecap="round"/><path d="M82 35 L105 8" stroke="#B5A8D6" stroke-width="1.5" stroke-linecap="round"/><circle cx="107" cy="6" r="2.5" fill="#B5A8D6"/><text x="115" y="10" font-size="8" fill="#B5A8D6" font-family="Inter">reach up</text></svg>'},
+  {id:7,phase:'mobility',name:'90/90 Hip Switches',time:'3 min',seconds:180,target:'Hip capsule · Glutes',steps:['Sit: both knees at 90° — front external, back internal rotation.','Lean forward over front shin. Hold 30s.','Windshield-wiper legs to switch sides.','3 switches per side.'],tip:'Use a cushion under your hip if you can\'t sit upright. Never push through pinching.',video:'https://www.youtube.com/results?search_query=90+90+hip+stretch+switches+tutorial',svg:'<svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="15" r="8" fill="#F0EBFF" stroke="#B5A8D6" stroke-width="1.5"/><path d="M100 23 L100 45" stroke="#B5A8D6" stroke-width="2" stroke-linecap="round"/><path d="M100 45 L65 45 L65 75" stroke="#B5A8D6" stroke-width="1.5" stroke-linecap="round" fill="none"/><path d="M100 45 L135 45 L135 65 L155 65" stroke="#B5A8D6" stroke-width="1.5" stroke-linecap="round" fill="none"/><text x="55" y="78" font-size="8" fill="#B5A8D6" font-family="Inter">90°</text><text x="145" y="72" font-size="8" fill="#B5A8D6" font-family="Inter">90°</text></svg>'},
+  {id:8,phase:'mobility',name:'Deep Squat Hold',time:'2 min',seconds:120,target:'Ankles · Hips · Lower back',steps:['Feet wider than shoulders, toes out.','Lower into deep squat — heels flat.','Press elbows against inner knees.','Breathe deeply, shift weight side to side.'],tip:'Elevate heels on a book if they lift. Hold a door frame for support.',video:'https://www.youtube.com/results?search_query=deep+squat+hold+mobility+beginner',svg:'<svg viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg"><circle cx="80" cy="15" r="9" fill="#FFD6E0" stroke="#FFB5C2" stroke-width="1.5"/><path d="M80 24 L80 48" stroke="#FFB5C2" stroke-width="2" stroke-linecap="round"/><path d="M80 48 L55 62 L50 85" stroke="#FFB5C2" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M80 48 L105 62 L110 85" stroke="#FFB5C2" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M72 35 L52 50" stroke="#FFB5C2" stroke-width="1.5" stroke-linecap="round"/><path d="M88 35 L108 50" stroke="#FFB5C2" stroke-width="1.5" stroke-linecap="round"/></svg>'},
+  {id:9,phase:'mobility',name:'Down Dog to Cobra',time:'2 min',seconds:120,target:'Hamstrings · Spine · Chest',steps:['<b>Down Dog:</b> Inverted V, press chest toward thighs.','Pedal heels 15s.','<b>Cobra:</b> Lower hips, press up, lift chest.','Flow 6–8 times.'],tip:'In down dog, bend knees slightly if needed. In cobra, keep elbows soft.',video:'https://www.youtube.com/results?search_query=downward+dog+to+cobra+yoga+flow+beginner',svg:'<svg viewBox="0 0 240 80" xmlns="http://www.w3.org/2000/svg"><text x="60" y="10" font-size="8" fill="#B5A8D6" font-family="Inter" text-anchor="middle">Down Dog</text><circle cx="35" cy="28" r="7" fill="#F0EBFF" stroke="#B5A8D6" stroke-width="1.5"/><path d="M40 33 L70 18 L100 75" stroke="#B5A8D6" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M35 35 L15 75" stroke="#B5A8D6" stroke-width="1.5" stroke-linecap="round"/><line x1="120" y1="10" x2="120" y2="75" stroke="#E8DDD0" stroke-width="1" stroke-dasharray="3 3"/><text x="180" y="10" font-size="8" fill="#95D4B5" font-family="Inter" text-anchor="middle">Cobra</text><circle cx="160" cy="38" r="7" fill="#E8F8EE" stroke="#95D4B5" stroke-width="1.5"/><path d="M160 45 L175 55 L225 65" stroke="#95D4B5" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M165 45 L175 62" stroke="#95D4B5" stroke-width="1.5" stroke-linecap="round"/><path d="M155 45 L145 62" stroke="#95D4B5" stroke-width="1.5" stroke-linecap="round"/></svg>'},
+  {id:10,phase:'cooldown',name:'Child\'s Pose',time:'2 min',seconds:120,target:'Lower back · Hips · Relaxation',steps:['Kneel, big toes touching, knees apart.','Sit back on heels, fold forward, arms extended.','Forehead rests on floor. Breathe into lower back.','Walk hands right 30s, then left 30s for side stretch.'],tip:'Place a pillow between calves and thighs if hips are tight.',video:'https://www.youtube.com/results?search_query=child%27s+pose+yoga+tutorial+beginner',svg:'<svg viewBox="0 0 180 70" xmlns="http://www.w3.org/2000/svg"><circle cx="65" cy="30" r="8" fill="#E8F8EE" stroke="#95D4B5" stroke-width="1.5"/><path d="M73 34 L110 42 L115 60" stroke="#95D4B5" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M110 42 L125 60" stroke="#95D4B5" stroke-width="1.5" stroke-linecap="round"/><path d="M57 34 L22 38" stroke="#95D4B5" stroke-width="1.5" stroke-linecap="round"/><text x="90" y="18" font-size="8" fill="#95D4B5" font-family="Inter">breathe deeply</text></svg>'},
+  {id:11,phase:'cooldown',name:'Supine Spinal Twist',time:'2 min',seconds:120,target:'Lower back · Spine · Glutes',steps:['Lie on back, arms in T shape.','Right knee to chest, guide across body left.','Keep both shoulders down. Look right.','Hold 1 min each side.'],tip:'Let gravity do the work — don\'t force.',video:'https://www.youtube.com/results?search_query=supine+spinal+twist+stretch+tutorial',svg:'<svg viewBox="0 0 200 70" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="35" r="8" fill="#E8F8EE" stroke="#95D4B5" stroke-width="1.5"/><path d="M100 43 L100 65" stroke="#95D4B5" stroke-width="2" stroke-linecap="round"/><path d="M100 50 L155 50" stroke="#95D4B5" stroke-width="1.5" stroke-linecap="round"/><path d="M100 50 L45 50" stroke="#95D4B5" stroke-width="1.5" stroke-linecap="round"/><path d="M100 65 L85 65 L72 55" stroke="#95D4B5" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M100 65 L120 65 L130 78" stroke="#95D4B5" stroke-width="1.5" fill="none" stroke-linecap="round"/><text x="65" y="50" font-size="7" fill="#95D4B5" font-family="Inter">knee crosses</text></svg>'},
+  {id:12,phase:'cooldown',name:'Deep Breathing',time:'2 min',seconds:120,target:'Nervous system · Full body',steps:['Lie flat, palms up, eyes closed.','Breathe in 4 counts, hold 4, out 6.','Scan body toe to head — release tension.','Wiggle fingers/toes, roll to side, sit up slowly.'],tip:'Activates parasympathetic nervous system. You\'ll return to work calmer.',video:'https://www.youtube.com/results?search_query=body+scan+relaxation+2+minute+breathing',svg:'<svg viewBox="0 0 180 55" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="28" r="8" fill="#E8F8EE" stroke="#95D4B5" stroke-width="1.5"/><path d="M38 30 L155 30" stroke="#95D4B5" stroke-width="2" stroke-linecap="round"/><path d="M42 30 L48 18" stroke="#95D4B5" stroke-width="1.5" stroke-linecap="round"/><path d="M42 30 L48 42" stroke="#95D4B5" stroke-width="1.5" stroke-linecap="round"/><path d="M155 30 L162 22" stroke="#95D4B5" stroke-width="1.5" stroke-linecap="round"/><path d="M155 30 L162 38" stroke="#95D4B5" stroke-width="1.5" stroke-linecap="round"/><text x="95" y="15" font-size="9" fill="#B5A8D6" font-family="Inter" text-anchor="middle">4 in · 4 hold · 6 out</text></svg>'},
+];
+
+let mobCompleted={},mobTimers={},mobFilter='all';
+try{const s=localStorage.getItem('mob_'+new Date().toISOString().slice(0,10));if(s)mobCompleted=JSON.parse(s)}catch(e){}
+function mobSave(){localStorage.setItem('mob_'+new Date().toISOString().slice(0,10),JSON.stringify(mobCompleted))}
+
+function mobRenderPhases(){
+  document.getElementById('mobPhases').innerHTML=['all','warmup','mobility','cooldown'].map(p=>
+    `<div class="mob-pt ${mobFilter===p?'active':''}" data-p="${p}" onclick="mobFilterFn('${p}')">${{all:'All',warmup:'Warm-Up',mobility:'Mobility',cooldown:'Cool-Down'}[p]}</div>`
+  ).join('');
+}
+
+function mobRender(){
+  const filtered=mobFilter==='all'?mobEx:mobEx.filter(e=>e.phase===mobFilter);
+  const done=Object.keys(mobCompleted).length,total=mobEx.length,pct=Math.round(done/total*100);
+  document.getElementById('mobProgCount').textContent=done+'/'+total;
+  document.getElementById('mobProgFill').style.width=pct+'%';
+  document.getElementById('mobProgLabel').textContent=done===total?'✨ All done!':done+'/'+total+' completed';
+
+  document.getElementById('mobList').innerHTML=filtered.map(ex=>{
+    const isDone=!!mobCompleted[ex.id];
+    return`<div class="mob-card ${ex.phase} ${isDone?'completed':''}" id="mc-${ex.id}">
+      <div class="mob-ch" onclick="mobToggleCard(${ex.id})"><div class="mob-num">${ex.id}</div><div class="mob-info"><div class="mob-name">${ex.name}</div><div class="mob-target">${ex.target}</div></div><div class="mob-time">${ex.time}</div></div>
+      <div class="mob-body" id="mb-${ex.id}">
+        <div class="mob-illus">${ex.svg}</div>
+        <div class="mob-steps"><ol>${ex.steps.map(s=>'<li>'+s+'</li>').join('')}</ol>${ex.tip?'<div class="mob-tip">💡 '+ex.tip+'</div>':''}</div>
+        <div class="mob-timer" id="mt-${ex.id}"></div>
+        <div class="mob-actions">
+          <button class="mob-btn mob-btn-timer" id="mtb-${ex.id}" onclick="mobTimer(${ex.id},${ex.seconds},event)">▶ Timer</button>
+          <a class="mob-btn mob-btn-video" href="${ex.video}" target="_blank" onclick="event.stopPropagation()">📹 Video</a>
+          <button class="mob-btn mob-btn-done ${isDone?'is-done':''}" onclick="mobDone(${ex.id},event)">${isDone?'✓ Done':'Done'}</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function mobToggleCard(id){document.getElementById('mb-'+id).classList.toggle('open')}
+function mobDone(id,e){e.stopPropagation();if(mobCompleted[id])delete mobCompleted[id];else mobCompleted[id]=true;mobSave();mobRender()}
+function mobFilterFn(p){mobFilter=p;mobRenderPhases();mobRender()}
+function mobTimer(id,secs,e){
+  e.stopPropagation();
+  const btn=document.getElementById('mtb-'+id),disp=document.getElementById('mt-'+id),card=document.getElementById('mc-'+id);
+  if(mobTimers[id]){clearInterval(mobTimers[id].iv);delete mobTimers[id];btn.textContent='▶ Timer';btn.classList.remove('running');disp.classList.remove('show');card.classList.remove('active-ex');return}
+  let rem=secs;disp.classList.add('show');card.classList.add('active-ex');btn.textContent='⏹ Stop';btn.classList.add('running');
+  function tick(){const m=Math.floor(rem/60),s=rem%60;disp.textContent=m+':'+String(s).padStart(2,'0');if(rem<=0){clearInterval(mobTimers[id].iv);delete mobTimers[id];disp.textContent='✅ Done!';btn.textContent='▶ Timer';btn.classList.remove('running');card.classList.remove('active-ex');mobCompleted[id]=true;mobSave();setTimeout(()=>{disp.classList.remove('show');mobRender()},1500);try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}rem--}
+  tick();mobTimers[id]={iv:setInterval(tick,1000)};
+}
+function mobResetAll(){mobCompleted={};mobSave();Object.values(mobTimers).forEach(t=>clearInterval(t.iv));mobTimers={};mobRender()}
+
+mobRenderPhases();mobRender();
+
+// Auto-clear old data
+try{Object.keys(localStorage).filter(k=>k.startsWith('sch_')||k.startsWith('mob_')||k.startsWith('goals_')).forEach(k=>{const d=k.slice(-10);if(d<new Date(Date.now()-3*864e5).toISOString().slice(0,10))localStorage.removeItem(k)})}catch(e){}
+</script>
+</body>
+</html>
